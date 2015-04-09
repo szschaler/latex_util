@@ -1,0 +1,518 @@
+% History
+% [2004-11-08] Tried to add ntheorem-based support for list of examples and 
+%              list of definitions and theorems, but failed utterly. When 
+%              writing phd.thm, ntheorem.sty will not expand the caption of the
+%              theorem. Because I use local macros to transport the caption 
+%              from the keyval parameter to the optional parameter of the 
+%              theorem environment, the name of this local variable gets written
+%              to phd.thm. When this is read to produce the lists, the name of 
+%              the local variable is of course no longer known. Generating 
+%              unique global variables has failed, too, so far... So, I have 
+%              taken this out again... Ah, I eventually found a solution...
+%
+% [2004-12-01] Enhanced \part command to allow for some summarizing text on the \part page
+%
+% [2005-01-13] Added \subsubsubsection and proposition environment
+%
+% [2006-01-??] Added \insertTwoFigures command
+%
+% [2006-02-10] Fixed a bug in transmitting position information to the figure environment
+%
+% [2006-02-20] Added \unskip\nobreak to the end of theorem-style environments
+%              This may occasionally require that an empty line is left at the end of such an environment if it is not ended with
+%              a list environment and the last paragraph fills the entire line.
+%
+% [2006-03-09] Added options norelnum and secnum to control numbering of environments for definitions, theorems, examples, and
+%              propositions
+%
+% [2006-03-09] Added option nofancystyle to control page styling
+%
+% [2006-03-09] Modified definition of environments for definitions, theorems, examples, and propositions to use \renewenvironment
+%              instead of \newenvironment to be compatible with other packages.
+%
+% [2006-03-10] Added twocolumn option to enable special figure commands for twocolumn documents.
+%
+% [2006-04-30] Added fancyhdr to the list of required packages.
+%
+% [2006-05-15] Fixed \addexampleline to increase the example counter before writing the theorem line to aux.
+%
+% [2006-05-15] Fixed \listofdefinitions to include the type of theorem with every entry
+%
+% [2006-05-17] Added nodrafts option to package.
+%
+% [2006-05-15] Changed ntheorem usage to using \theoremsymbol for endmark definition.
+%
+% [2006-08-15] Removed indexing from \termDefine.
+%
+% [2010-06-15] Added use of cite.sty to sort and compress \cite lists
+
+% Command Definitions for my PhD-Thesis
+\NeedsTeXFormat{LaTeX2e}[1995/12/01]
+\ProvidesPackage{commands}
+
+\newif\if@relativenumbering
+  \@relativenumberingtrue
+\def\number@scheme{chapter}
+\DeclareOption{norelnum}   % Number environments consecutively w/o resetting at each chapter
+  {\@relativenumberingfalse}
+\DeclareOption{secnum}     % Number environments consecutively resetting counters at each section
+  {\gdef\number@scheme{section}}
+
+\newif\if@fancystyle 
+  \@fancystyletrue
+\DeclareOption{nofancystyle}
+  {\@fancystylefalse}
+  
+\newif\if@twocolumn
+  \@twocolumnfalse
+\DeclareOption{twocolumn}
+  {\@twocolumntrue}
+
+\DeclareOption{unknownkeysallowed}
+  {\PassOptionsToPackage\CurrentOption{keyval}}
+
+\DeclareOption{nodrafts} % Use this option to have all draft-commands emit a warning
+  {\gdef\dr@ftPrefix{\PackageWarning{commands}{Draft commands have been disallowed for this document!}}}
+\def\dr@ftPrefix{}
+
+%\newif\if@nohyperref
+%  \@nohyperreffalse
+%\DeclareOption{nohyperref} % Use this option if you are not using the hyperref package
+%  {\@nohyperreftrue}
+
+\ProcessOptions
+
+\RequirePackage{keyval,ifthen,graphicx,amssymb,fancyhdr,cite}
+%\if@nohyperref
+%  \RequirePackage[noconfig,thmmarks]{ntheorem}
+%\else
+  \RequirePackage[hyperref,noconfig,thmmarks]{ntheorem}
+%\fi
+\let\qed\relax % Don't allow \qed usage because this conflicts with the definition of \qed in ps.sty
+%\RequirePackage[logonly]{trace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% setup headers (from the not so short intro to \LaTeXe)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\if@fancystyle
+  \pagestyle{fancy}
+  \renewcommand{\chaptermark}[1]{\markboth{#1}{}} % only print name of chapter in normal case
+  \renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}} % for sections, print number and name in normal case
+  \fancyhf{}
+  %\fancyhead[LE,RO]{\bfseries\thepage} % print page number on left-even and right-odd
+  %\fancyhead[LO]{\bfseries\rightmark} % print section markings on left-odd
+  %\fancyhead[RE]{\bfseries\leftmark} % print chapter markings on right-even
+  \fancyhead[LE,RO]{\thepage} % print page number on left-even and right-odd
+  \fancyhead[LO]{\rightmark} % print section markings on left-odd
+  \fancyhead[RE]{\leftmark} % print chapter markings on right-even
+  \renewcommand{\headrulewidth}{0.5pt}
+  \renewcommand{\footrulewidth}{0.5pt}
+  %\addtolength{\headheight}{1.6pt} % apparently its not sufficient to just add 0.5pt this keeps creating overfull vbox warnings...
+  \renewcommand{\headheight}{25.3pt}
+  \fancypagestyle{plain}{% this is supposed to go on the first page of a chapter
+    \fancyhead{} % no header for the first page of a chapter
+    \fancyfoot[R]{\thepage} % but do put the page number in the footer (removed \bfseries)
+    \renewcommand{\headrulewidth}{0pt} % and no line either
+  }
+  \ifdraft
+    \fancyfoot[C]{\scshape\draftText}
+  \fi
+\fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Commands definitions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ...damit kann man Text im Entwurfsstatus als solchen kennzeichnen
+\newcommand{\draft}[2][]%
+    {\dr@ftPrefix\noindent{\bfseries $\Rightarrow$ {\ttfamily To Do} #1: }{{\itshape\sffamily#2}} $\Leftarrow$}
+\newenvironment{draftbar}[1][]%
+    {\dr@ftPrefix%
+     \par\noindent{\bfseries $\Downarrow$ {\ttfamily To Do} #1 \par}\begin{itshape}\begin{sffamily}\begin{scriptsize}}%
+    {\end{scriptsize}\end{sffamily}\end{itshape}{\par\noindent\bfseries $\Uparrow$ \ttfamily To Do\par}}
+\newenvironment{draftlist}[1][]%
+    {\begin{draftbar}[#1]
+       \let\olditem\item
+       \def\item{\begin{itemize}\let\item\olditem\item}}%
+    {\end{itemize}\end{draftbar}}
+
+% first occurrence of a term being defined:
+%\newcommand{\termDefine}[1]{\emph{#1}\index{#1|textbf}}
+\newcommand{\termDefine}[1]{\emph{#1}}
+
+% Indexing helpers
+% Produce a bold face index entry
+\newcommand{\indexB}[1]{\index{#1|textbf}}
+\newcommand{\indexBro}[1]{\index{#1|(textbf}} % open bold range
+\newcommand{\indexBrc}[1]{\index{#1|)}} % close bold range
+% Produce a 'see' index entry
+\def\seeIndex#1#2{\index{#1|see{#2}}}
+
+%%% LaTeX companion p. 93
+\newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
+
+%% Helper command for TeXnicCenter
+\let\eqref\relax
+\newcommand{\eqref}[1]{(\ref{#1})} % \eqrefs seems to come from amstex and add the parens. Found at http://www.math.uiuc.edu/~hildebr/tex/topten.html
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Environment definitions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Global settings for theorems, definitions, examples etc. 
+\theorembodyfont{\rmfamily\upshape}
+
+% Helper for calling newtheorem
+\def\new@theorem#1#2{
+  \def\doDefine##1.{
+    \global\newtheorem{#1}{#2}[##1]
+  }
+  \if@relativenumbering
+    \expandafter\doDefine\number@scheme.
+  \else
+    \global\newtheorem{#1}{#2}
+  \fi
+}
+
+% Environment for definitions
+% The code for the box at the end from Mark Richters
+
+  % Parameter set definitions
+  \newcommand{\CMD@def@label}{no_label}
+  \define@key{CMD@def}{label}%
+             {\renewcommand{\CMD@def@label}{#1}}
+  \newcommand{\CMD@def@caption}{no_caption}
+  \define@key{CMD@def}{caption}%
+             {\renewcommand{\CMD@def@caption}{#1}}
+
+  % The actual environment
+  \theoremsymbol{\ensuremath{\blacksquare}}
+  %\newtheorem{CMD@def}{Definition}[chapter]
+  \new@theorem{CMD@def}{Definition}
+  \newenvironment{define}[1][]%
+  	{\renewcommand{\CMD@def@label}{no_label}%
+  	 \renewcommand{\CMD@def@caption}{no_caption}%
+  	 \setkeys{CMD@def}{#1}%
+  	 \def\doBegin##1|{%
+	  	 \ifthenelse{\equal{##1}{no_caption}}%
+	  	            {\begin{CMD@def}}%
+	  	            {\begin{CMD@def}[##1]}%
+	   }%
+	   \expandafter\doBegin\CMD@def@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+  	 \ifthenelse{\equal{\CMD@def@label}{no_label}}%
+  	            {\ifthenelse{\equal{\CMD@def@caption}{no_caption}}%
+  	                        {}%
+  	                        {\label{define:\CMD@def@caption}}}%
+  	            {\label{define:\CMD@def@label}}%
+  	}%
+  	{%\unskip\nobreak\mbox{}\hfill$\blacksquare$%
+  	 \end{CMD@def}%\medskip
+  	 }
+
+% Environment for examples
+% The code for the box at the end from Mark Richters
+
+  % Parameter set definitions
+  \newcommand{\CMD@exm@label}{no_label}
+  \define@key{CMD@exm}{label}%
+             {\renewcommand{\CMD@exm@label}{#1}}
+  \newcommand{\CMD@exm@caption}{no_caption}
+  \define@key{CMD@exm}{caption}%
+             {\renewcommand{\CMD@exm@caption}{#1}}
+
+  % The actual environment
+  \theoremsymbol{\ensuremath{\Diamond}}
+  %\newtheorem{CMD@exm}{Example}[chapter]
+  \new@theorem{CMD@exm}{Example}
+  \global\let\example\relax
+  \global\let\endexample\relax
+  \newenvironment{example}[1][]%
+    {\renewcommand{\CMD@exm@label}{no_label}%
+     \renewcommand{\CMD@exm@caption}{no_caption}%
+     \setkeys{CMD@exm}{#1}%
+     \def\doBegin##1|{%
+	     \ifthenelse{\equal{##1}{no_caption}}%
+	                {\begin{CMD@exm}}%
+	                {\begin{CMD@exm}[##1]}%
+	   }%
+	   \expandafter\doBegin\CMD@exm@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+     \ifthenelse{\equal{\CMD@exm@label}{no_label}}%
+                {\ifthenelse{\equal{\CMD@exm@caption}{no_caption}}%
+                            {}%
+                            {\label{example:\CMD@exm@caption}}}%
+                {\label{example:\CMD@exm@label}}%
+    }%
+    {%\unskip\nobreak\mbox{}\hfill$\Diamond$%
+     \end{CMD@exm}} 
+
+% Environment for theorems
+% The code for the box at the end from Mark Richters
+
+  % Parameter set definitions
+  \newcommand{\CMD@thm@label}{no_label}
+  \define@key{CMD@thm}{label}%
+             {\renewcommand{\CMD@thm@label}{#1}}
+  \newcommand{\CMD@thm@caption}{no_caption}
+  \define@key{CMD@thm}{caption}%
+             {\renewcommand{\CMD@thm@caption}{#1}}
+
+  % The actual environment
+  \theoremsymbol{\ensuremath{\Box}}
+  %\newtheorem{CMD@thm}{Theorem}[chapter]
+  \new@theorem{CMD@thm}{Theorem}
+  \global\let\theorem\relax
+  \global\let\endtheorem\relax
+  \newenvironment{theorem}[1][]%
+    {\renewcommand{\CMD@thm@label}{no_label}%
+     \renewcommand{\CMD@thm@caption}{no_caption}%
+     \setkeys{CMD@thm}{#1}%
+     \def\doBegin##1|{%
+	     \ifthenelse{\equal{##1}{no_caption}}%
+	                {\begin{CMD@thm}}%
+	                {\begin{CMD@thm}[##1]}%
+	   }%
+	   \expandafter\doBegin\CMD@thm@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+     \ifthenelse{\equal{\CMD@thm@label}{no_label}}%
+                {\ifthenelse{\equal{\CMD@thm@caption}{no_caption}}%
+                            {}%
+                            {\label{theorem:\CMD@thm@caption}}}%
+                {\label{theorem:\CMD@thm@label}}%
+    }%
+    {%\unskip\nobreak\mbox{}\hfill$\Box$%
+     \end{CMD@thm}}
+     
+% Environment for propositions
+% The code for the box at the end from Mark Richters
+
+  % Parameter set definitions
+  \newcommand{\CMD@prp@label}{no_label}
+  \define@key{CMD@prp}{label}%
+             {\renewcommand{\CMD@prp@label}{#1}}
+  \newcommand{\CMD@prp@caption}{no_caption}
+  \define@key{CMD@prp}{caption}%
+             {\renewcommand{\CMD@prp@caption}{#1}}
+
+  % The actual environment
+  \theoremsymbol{\ensuremath{\Box}}
+  %\newtheorem{CMD@prp}{Proposition}[chapter]
+  \new@theorem{CMD@prp}{Proposition}
+  \global\let\proposition\relax
+  \global\let\endproposition\relax
+  \newenvironment{proposition}[1][]%
+    {\renewcommand{\CMD@prp@label}{no_label}%
+     \renewcommand{\CMD@prp@caption}{no_caption}%
+     \setkeys{CMD@prp}{#1}%
+     \def\doBegin##1|{%
+	     \ifthenelse{\equal{##1}{no_caption}}%
+	                {\begin{CMD@prp}}%
+	                {\begin{CMD@prp}[##1]}%
+	   }%
+	   \expandafter\doBegin\CMD@prp@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+     \ifthenelse{\equal{\CMD@prp@label}{no_label}}%
+                {\ifthenelse{\equal{\CMD@prp@caption}{no_caption}}%
+                            {}%
+                            {\label{theorem:\CMD@prp@caption}}}%
+                {\label{theorem:\CMD@prp@label}}%
+    }%
+    {%\unskip\nobreak\mbox{}\hfill$\Box$%
+     \end{CMD@prp}}
+
+% List of examples
+\newcommand{\listofexamplesheading}{List of Examples}
+\newcommand{\listofexamples}{\listtheorems{CMD@exm}}
+\newcommand{\addexampleline}[1]{% Adds an entry to the list of examples, even though no explicit example environment was opened
+  \stepcounter{CMD@exm} % Increase example counter
+  \addtheoremline{CMD@exm}{#1}
+}
+
+% List of definitions
+\newcommand{\listofdefinitionsheading}{List of Definitions, Propositions, and Theorems}
+\newcommand{\listofdefinitions}{%
+  \theoremlisttype{allname} % This also lists the type of theorem
+  \listtheorems{CMD@def,CMD@thm,CMD@prp}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figures always look like this
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \graphicspath{{images/}{../RunningExample/images/}}
+
+  % Define argument set FIG
+    % Helper
+    \newif\ifFIG@widthset
+
+    % label - define a label to be used in references
+    \newcommand{\FIG@label}{}
+    \define@key{FIG}{label}{\renewcommand{\FIG@label}{#1}}
+    
+    % caption - caption to be printed in text
+    \newcommand{\FIG@caption}{}
+    \define@key{FIG}{caption}{\renewcommand{\FIG@caption}{#1}}
+    
+    % short_caption - text to be shown in list of figures, defaults to caption if omitted.
+    \newcommand{\FIG@shortCaption}{}
+    \define@key{FIG}{short_caption}%
+        {\renewcommand{\FIG@shortCaption}{#1}}
+        
+    % angle - rotation angle if needed
+    \newcommand{\FIG@angle}{}
+    \define@key{FIG}{angle}{\renewcommand{\FIG@angle}{#1}}
+
+    % targetwidth - width the image should have after scaling. 
+    % defaults to \textwidth
+    % set to \imgsize to indicate that the figure should not be resized
+    \newcommand{\FIG@targetwidth}{}
+    \define@key{FIG}{targetwidth}%
+                    {\renewcommand{\FIG@targetwidth}{#1}
+                     \FIG@widthsettrue}
+    \newcommand\imgsize{imgsize}
+
+    % position - position identifiers
+    % defaults to tbp
+    \newcommand{\FIG@position}{}
+    \define@key{FIG}{position}{\renewcommand{\FIG@position}{#1}}
+    
+    % if in twocolumn mode, we also have a onecolumn parameter to produce figures only one column wide
+    \newcommand{\FIG@onecolumn}{}
+    \if@twocolumn
+      % onecolumn - flag for setting a figure in only one column in twocolumn mode
+      % defaults to false
+      \define@key{FIG}{onecolumn}%
+                      {\renewcommand{\FIG@onecolumn}{{figure}}
+                       \ifFIG@widthset
+                       \else
+                         \renewcommand{\FIG@targetwidth}{\hsize}
+                       \fi}
+    \fi
+    
+    % textfraction -- minimum fraction of the page to be used for this figure -- a number between 0 and 1
+    % defaults to the default LaTeX settings
+    %\newcommand{\FIG@textfraction}{}
+    %\define@key{FIG}{textfraction}{%
+    %  \def\FIG@setp##1.{\renewcommand{\FIG@textfraction}{##1}}
+    %  \expandafter\FIG@setp#1.
+    %}
+
+    % topfraction -- maximum fraction of the page to be used for this figure if it is to be placed at the top of the page
+    %             -- a number between 0 and 1
+    % defaults to the default LaTeX settings
+    %\newcommand{\FIG@topfraction}{}
+    %\define@key{FIG}{topfraction}{%
+    %  \def\FIG@setp##1.{\renewcommand{\FIG@topfraction}{##1}}
+    %  \expandafter\FIG@setp#1.
+    %}
+    
+  % Normal figure
+  % args: image file, key-value list of parameters
+  % default label is "figure:"<image file>
+  \newcommand{\insertFigure}[2][]{
+  %\traceon % requires package trace to be loaded
+    \renewcommand{\FIG@label}{no_label}
+    \renewcommand{\FIG@caption}{no_caption}
+    \renewcommand{\FIG@shortCaption}{no_caption}
+    \renewcommand{\FIG@angle}{0}
+    \renewcommand{\FIG@targetwidth}{\textwidth}\FIG@widthsetfalse
+    \renewcommand{\FIG@position}{tbp}
+    %\let\FIG@tmp@textfraction\textfraction
+    %\renewcommand{\FIG@textfraction}{\FIG@tmp@textfraction}
+    %\let\FIG@tmp@topfraction\textfraction
+    %\renewcommand{\FIG@topfraction}{\FIG@tmp@topfraction}
+    \if@twocolumn
+      \renewcommand{\FIG@onecolumn}{{figure*}}
+    \else
+      \renewcommand{\FIG@onecolumn}{{figure}}
+    \fi
+    \setkeys{FIG}{#1}
+    
+    \def\doFigure##1.{ % We have to take this roundabout way because we need to evaluate the position parameter before putting it
+                       % into the optional parameter of the figure environment.
+      %\begin{figure}[##1]
+      \expandafter\begin\FIG@onecolumn[##1]
+        %\def\textfraction{\FIG@textfraction}
+        %\def\topfraction{\FIG@topfraction}]
+
+        \begin{center}
+%          \vspace*{-5ex}
+          \ifthenelse{\equal{\FIG@targetwidth}{\imgsize}}%
+                     {\includegraphics[draft=false, angle=\FIG@angle]{#2}}%
+                     {\includegraphics[width=\FIG@targetwidth, draft=false, angle=\FIG@angle]{#2}}
+%          \vspace*{-3.2ex}
+          \ifthenelse{\equal{\FIG@caption}{no_caption}}%
+                     {}%
+                     {\ifthenelse{\equal{\FIG@shortCaption}%
+                                        {no_caption}}%
+                                 {\caption{\FIG@caption}}%
+                                 {\caption[\FIG@shortCaption]%
+                                          {\FIG@caption}}
+                     }
+          \ifthenelse{\equal{\FIG@label}{no_label}}%
+                     {\label{figure:#2}}%
+                     {\label{figure:\FIG@label}}
+        \end{center}
+%        \vspace*{-7.5ex}
+      %\end{figure}
+      \expandafter\end\FIG@onecolumn
+    }
+    \expandafter\doFigure\FIG@position.
+  %\traceoff
+  }
+  
+  % Figure float with two figures next to each other
+  % args: image file, key-value list of parameters
+  % default label is "figure:"<image file 1>":"<image file 2>
+  \newcommand{\insertTwoFigures}[3][]{
+    \renewcommand{\FIG@label}{no_label}
+    \renewcommand{\FIG@caption}{no_caption}
+    \renewcommand{\FIG@shortCaption}{no_caption}
+    \renewcommand{\FIG@angle}{0}
+    \renewcommand{\FIG@targetwidth}{.49\hsize}
+    \renewcommand{\FIG@position}{tbp}
+    \setkeys{FIG}{#1}
+    
+    \def\doFigure##1.{ % We have to take this roundabout way because we need to evaluate the position parameter before putting it
+                       % into the optional parameter of the figure environment.
+      \begin{figure}[##1]
+        \begin{center}
+          \includegraphics[width=\FIG@targetwidth, draft=false, angle=\FIG@angle]{#2}
+          \includegraphics[width=\FIG@targetwidth, draft=false, angle=\FIG@angle]{#3}
+%          \vspace*{-3ex}
+          \ifthenelse{\equal{\FIG@caption}{no_caption}}%
+                     {}%
+                     {\ifthenelse{\equal{\FIG@shortCaption}%
+                                        {no_caption}}%
+                                 {\caption{\FIG@caption}}%
+                                 {\caption[\FIG@shortCaption]%
+                                          {\FIG@caption}}´
+                     }                               
+          \ifthenelse{\equal{\FIG@label}{no_label}}%
+                     {\label{figure:#2:#3}}%
+                     {\label{figure:\FIG@label}}
+        \end{center}
+%        \vspace*{-6.5ex}
+      \end{figure}
+    }
+    \expandafter\doFigure\FIG@position.
+  }
+  
+  % Use this command to reference a figure.
+  \newcommand{\figref}[1]{\ref{figure:#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Special commands for parts
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This adds an additional third parameter to the \part command which 
+% can contain arbitrary paragraph data and will be printed on the same
+% page as the part heading, but under the part heading
+%
+% So now you can use \part in one of these forms:
+% \part{Title}
+% \part[Short Title]{Title}
+% \part{Title}[Additional Text]
+% \part[Short Title]{Title}[Additional Text]
+%
+\let\my@endpart\@endpart
+\def\@endpart{\@ifnextchar[{\@endpart@par}{\my@endpart}}
+\long\def\@endpart@par[#1]{\vfil\noindent{#1}\my@endpart}
+
+\newcommand{\subsubsubsection}[1]{\paragraph{#1}}
+
+\endinput
