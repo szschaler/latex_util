@@ -45,6 +45,8 @@
 % [2006-08-15] Removed indexing from \termDefine.
 %
 % [2010-06-15] Added use of cite.sty to sort and compress \cite lists
+%
+% [2015-04-09] Moved drafts stuff into its own style file.
 
 % Command Definitions for my PhD-Thesis
 \NeedsTeXFormat{LaTeX2e}[1995/12/01]
@@ -70,10 +72,6 @@
 
 \DeclareOption{unknownkeysallowed}
   {\PassOptionsToPackage\CurrentOption{keyval}}
-
-\DeclareOption{nodrafts} % Use this option to have all draft-commands emit a warning
-  {\gdef\dr@ftPrefix{\PackageWarning{commands}{Draft commands have been disallowed for this document!}}}
-\def\dr@ftPrefix{}
 
 %\newif\if@nohyperref
 %  \@nohyperreffalse
@@ -122,18 +120,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Commands definitions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ...damit kann man Text im Entwurfsstatus als solchen kennzeichnen
-\newcommand{\draft}[2][]%
-    {\dr@ftPrefix\noindent{\bfseries $\Rightarrow$ {\ttfamily To Do} #1: }{{\itshape\sffamily#2}} $\Leftarrow$}
-\newenvironment{draftbar}[1][]%
-    {\dr@ftPrefix%
-     \par\noindent{\bfseries $\Downarrow$ {\ttfamily To Do} #1 \par}\begin{itshape}\begin{sffamily}\begin{scriptsize}}%
-    {\end{scriptsize}\end{sffamily}\end{itshape}{\par\noindent\bfseries $\Uparrow$ \ttfamily To Do\par}}
-\newenvironment{draftlist}[1][]%
-    {\begin{draftbar}[#1]
-       \let\olditem\item
-       \def\item{\begin{itemize}\let\item\olditem\item}}%
-    {\end{itemize}\end{draftbar}}
 
 % first occurrence of a term being defined:
 %\newcommand{\termDefine}[1]{\emph{#1}\index{#1|textbf}}
