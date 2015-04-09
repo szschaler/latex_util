@@ -1,2 +1,6 @@
 # latex_util
 Some LaTeX helpers...
+
+I have developed these over time and found them useful for various papers etc. that I have been writing. I thought putting them into a repo would a) force me to clean them up a little (let's see how that goes) and b) possibly be of use to others (or not).
+
+There goes...
