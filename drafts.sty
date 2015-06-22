@@ -5,12 +5,20 @@
   {\PassOptionsToPackage\CurrentOption{keyval}}
 
 \DeclareOption{nodrafts} % Use this option to have all draft-commands emit a warning
-  {\gdef\dr@ftPrefix{\PackageWarning{commands}{Draft commands have been disallowed for this document!}}}
+  {\gdef\dr@ftPrefix{\PackageWarning{commands}{Draft commands have been disallowed for this document!}}%
+   \renewcommand{\delete}[1]{}%
+   \renewcommand{\change}[2]{#2}
+  }
 \def\dr@ftPrefix{}
+% Note, colors will be defined below, but need to define macros here so they can be redefined in response to option
+\newcommand{\delete}[1]{\textcolor{red}{\sout{#1}}}
+\newcommand{\change}[2]{\delete{#1}\textcolor{green}{#2}}
 
 \ProcessOptions
 
 \RequirePackage{keyval,ifthen}
+\RequirePackage[normalem]{ulem} % For change control
+\RequirePackage{color}  % For change control
 
 % Use these commands to mark comments in the text. When switching off draft mode, LaTeX will emit a warning whenever it encounters one of these commands.
 \newcommand{\draft}[2][]%
@@ -24,5 +32,10 @@
        \let\olditem\item
        \def\item{\begin{itemize}\let\item\olditem\item}}%
     {\end{itemize}\end{draftbar}}
+
+% Change Control
+\definecolor{green}{rgb}{.2,.8,0}
+\definecolor{blue}{rgb}{0,0,1}
+\definecolor{red}{rgb}{1,0,0}
 
 \endinput
