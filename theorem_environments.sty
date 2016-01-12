@@ -14,189 +14,339 @@
 \DeclareOption{twocolumn}
   {\@twocolumntrue}
 
+% Set this option for LNCS compatibility mode
+% This will reuse LNCS's theorem definitions wherever appropriate.
+\newif\if@lncs
+  \@lncsfalse
+\DeclareOption{lncs}
+  {\@lncstrue}
+
 \DeclareOption{unknownkeysallowed}
   {\PassOptionsToPackage\CurrentOption{keyval}}
 
 \ProcessOptions
 
 \RequirePackage{keyval,ifthen,amssymb}
-\RequirePackage[hyperref,noconfig,thmmarks]{ntheorem}
+\if@lncs
+	\RequirePackage[hyperref,noconfig]{ntheorem}
+\else
+	\RequirePackage[hyperref,noconfig,thmmarks]{ntheorem}
+\fi
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Environment definitions
+%
+% TODO: These could do with a more fine-grained interleaving of LNCS 
+% checking to reduce the amount of overall code.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Global settings for theorems, definitions, examples etc. 
-\theorembodyfont{\rmfamily\upshape}
+\if@lncs
 
-% Helper for calling newtheorem
-\def\new@theorem#1#2{
-  \def\doDefine##1.{
-    \global\newtheorem{#1}{#2}[##1]
-  }
-  \if@relativenumbering
-    \expandafter\doDefine\number@scheme.
-  \else
-    \global\newtheorem{#1}{#2}
-  \fi
-}
+	% Reuse LNCS definitions, only giving them our own options
 
-% Environment for definitions
-% The code for the box at the end from Mark Richters
+	% Environment for definitions
 
-  % Parameter set definitions
-  \newcommand{\CMD@def@label}{no_label}
-  \define@key{CMD@def}{label}%
-             {\renewcommand{\CMD@def@label}{#1}}
-  \newcommand{\CMD@def@caption}{no_caption}
-  \define@key{CMD@def}{caption}%
-             {\renewcommand{\CMD@def@caption}{#1}}
+		% Parameter set definitions
+		\newcommand{\CMD@def@label}{no_label}
+		\define@key{CMD@def}{label}%
+							 {\renewcommand{\CMD@def@label}{#1}}
+		\newcommand{\CMD@def@caption}{no_caption}
+		\define@key{CMD@def}{caption}%
+							 {\renewcommand{\CMD@def@caption}{#1}}
+							
+		\newenvironment{define}[1][]%
+			{\renewcommand{\CMD@def@label}{no_label}%
+			 \renewcommand{\CMD@def@caption}{no_caption}%
+			 \setkeys{CMD@def}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{definition}}%
+										{\begin{definition}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@def@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@def@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@def@caption}{no_caption}}%
+															{}%
+															{\label{define:\CMD@def@caption}}}%
+									{\label{define:\CMD@def@label}}%
+			}%
+			{\end{definition}
+			}
 
-  % The actual environment
-  \theoremsymbol{\ensuremath{\blacksquare}}
-  %\newtheorem{CMD@def}{Definition}[chapter]
-  \new@theorem{CMD@def}{Definition}
-  \newenvironment{define}[1][]%
-  	{\renewcommand{\CMD@def@label}{no_label}%
-  	 \renewcommand{\CMD@def@caption}{no_caption}%
-  	 \setkeys{CMD@def}{#1}%
-  	 \def\doBegin##1|{%
-	  	 \ifthenelse{\equal{##1}{no_caption}}%
-	  	            {\begin{CMD@def}}%
-	  	            {\begin{CMD@def}[##1]}%
-	   }%
-	   \expandafter\doBegin\CMD@def@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
-  	 \ifthenelse{\equal{\CMD@def@label}{no_label}}%
-  	            {\ifthenelse{\equal{\CMD@def@caption}{no_caption}}%
-  	                        {}%
-  	                        {\label{define:\CMD@def@caption}}}%
-  	            {\label{define:\CMD@def@label}}%
-  	}%
-  	{%\unskip\nobreak\mbox{}\hfill$\blacksquare$%
-  	 \end{CMD@def}%\medskip
-  	 }
+	% Environment for corollaries
 
-% Environment for examples
-% The code for the box at the end from Mark Richters
+		% Parameter set definitions
+		\newcommand{\CMD@cor@label}{no_label}
+		\define@key{CMD@cor}{label}%
+							 {\renewcommand{\CMD@cor@label}{#1}}
+		\newcommand{\CMD@cor@caption}{no_caption}
+		\define@key{CMD@cor}{caption}%
+							 {\renewcommand{\CMD@cor@caption}{#1}}
 
-  % Parameter set definitions
-  \newcommand{\CMD@exm@label}{no_label}
-  \define@key{CMD@exm}{label}%
-             {\renewcommand{\CMD@exm@label}{#1}}
-  \newcommand{\CMD@exm@caption}{no_caption}
-  \define@key{CMD@exm}{caption}%
-             {\renewcommand{\CMD@exm@caption}{#1}}
+		% The actual environment
+		\global\let\corollary@lncs\corollary
+		\global\let\corollary\relax
+		\global\let\endcorollary@lncs\endcorollary
+		\global\let\endcorollary\relax
+		\newenvironment{corollary}[1][]%
+			{\renewcommand{\CMD@cor@label}{no_label}%
+			 \renewcommand{\CMD@cor@caption}{no_caption}%
+			 \setkeys{CMD@cor}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{corollary@lncs}}%
+										{\begin{corollary@lncs}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@cor@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@cor@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@cor@caption}{no_caption}}%
+															{}%
+															{\label{corollary:\CMD@cor@caption}}}%
+									{\label{corollary:\CMD@cor@label}}%
+			}%
+			{%\unskip\nobreak\mbox{}\hfill$\Box$%
+			 \end{corollary@lncs}}
 
-  % The actual environment
-  \theoremsymbol{\ensuremath{\Diamond}}
-  %\newtheorem{CMD@exm}{Example}[chapter]
-  \new@theorem{CMD@exm}{Example}
-  \global\let\example\relax
-  \global\let\endexample\relax
-  \newenvironment{example}[1][]%
-    {\renewcommand{\CMD@exm@label}{no_label}%
-     \renewcommand{\CMD@exm@caption}{no_caption}%
-     \setkeys{CMD@exm}{#1}%
-     \def\doBegin##1|{%
-	     \ifthenelse{\equal{##1}{no_caption}}%
-	                {\begin{CMD@exm}}%
-	                {\begin{CMD@exm}[##1]}%
-	   }%
-	   \expandafter\doBegin\CMD@exm@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
-     \ifthenelse{\equal{\CMD@exm@label}{no_label}}%
-                {\ifthenelse{\equal{\CMD@exm@caption}{no_caption}}%
-                            {}%
-                            {\label{example:\CMD@exm@caption}}}%
-                {\label{example:\CMD@exm@label}}%
-    }%
-    {%\unskip\nobreak\mbox{}\hfill$\Diamond$%
-     \end{CMD@exm}} 
+	% Environment for examples
 
-% Environment for theorems
-% The code for the box at the end from Mark Richters
+		% Parameter set definitions
+		\newcommand{\CMD@exm@label}{no_label}
+		\define@key{CMD@exm}{label}%
+							 {\renewcommand{\CMD@exm@label}{#1}}
+		\newcommand{\CMD@exm@caption}{no_caption}
+		\define@key{CMD@exm}{caption}%
+							 {\renewcommand{\CMD@exm@caption}{#1}}
 
-  % Parameter set definitions
-  \newcommand{\CMD@thm@label}{no_label}
-  \define@key{CMD@thm}{label}%
-             {\renewcommand{\CMD@thm@label}{#1}}
-  \newcommand{\CMD@thm@caption}{no_caption}
-  \define@key{CMD@thm}{caption}%
-             {\renewcommand{\CMD@thm@caption}{#1}}
+		% The actual environment
+		\global\let\example@lncs\example
+		\global\let\example\relax
+		\global\let\endexample@lncs\endexample
+		\global\let\endexample\relax
+		\newenvironment{example}[1][]%
+			{\renewcommand{\CMD@exm@label}{no_label}%
+			 \renewcommand{\CMD@exm@caption}{no_caption}%
+			 \setkeys{CMD@exm}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{example@lncs}}%
+										{\begin{example@lncs}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@exm@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@exm@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@exm@caption}{no_caption}}%
+															{}%
+															{\label{example:\CMD@exm@caption}}}%
+									{\label{example:\CMD@exm@label}}%
+			}%
+			{\end{example@lncs}
+			} 
+\else
 
-  % The actual environment
-  \theoremsymbol{\ensuremath{\Box}}
-  %\newtheorem{CMD@thm}{Theorem}[chapter]
-  \new@theorem{CMD@thm}{Theorem}
-  \global\let\theorem\relax
-  \global\let\endtheorem\relax
-  \newenvironment{theorem}[1][]%
-    {\renewcommand{\CMD@thm@label}{no_label}%
-     \renewcommand{\CMD@thm@caption}{no_caption}%
-     \setkeys{CMD@thm}{#1}%
-     \def\doBegin##1|{%
-	     \ifthenelse{\equal{##1}{no_caption}}%
-	                {\begin{CMD@thm}}%
-	                {\begin{CMD@thm}[##1]}%
-	   }%
-	   \expandafter\doBegin\CMD@thm@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
-     \ifthenelse{\equal{\CMD@thm@label}{no_label}}%
-                {\ifthenelse{\equal{\CMD@thm@caption}{no_caption}}%
-                            {}%
-                            {\label{theorem:\CMD@thm@caption}}}%
-                {\label{theorem:\CMD@thm@label}}%
-    }%
-    {%\unskip\nobreak\mbox{}\hfill$\Box$%
-     \end{CMD@thm}}
-     
-% Environment for propositions
-% The code for the box at the end from Mark Richters
+	% Global settings for theorems, definitions, examples etc. 
+	\theorembodyfont{\rmfamily\upshape}
 
-  % Parameter set definitions
-  \newcommand{\CMD@prp@label}{no_label}
-  \define@key{CMD@prp}{label}%
-             {\renewcommand{\CMD@prp@label}{#1}}
-  \newcommand{\CMD@prp@caption}{no_caption}
-  \define@key{CMD@prp}{caption}%
-             {\renewcommand{\CMD@prp@caption}{#1}}
+	% Helper for calling newtheorem
+	\def\new@theorem#1#2{
+		\def\doDefine##1.{
+			\global\newtheorem{#1}{#2}[##1]
+		}
+		\if@relativenumbering
+			\expandafter\doDefine\number@scheme.
+		\else
+			\global\newtheorem{#1}{#2}
+		\fi
+	}
 
-  % The actual environment
-  \theoremsymbol{\ensuremath{\Box}}
-  %\newtheorem{CMD@prp}{Proposition}[chapter]
-  \new@theorem{CMD@prp}{Proposition}
-  \global\let\proposition\relax
-  \global\let\endproposition\relax
-  \newenvironment{proposition}[1][]%
-    {\renewcommand{\CMD@prp@label}{no_label}%
-     \renewcommand{\CMD@prp@caption}{no_caption}%
-     \setkeys{CMD@prp}{#1}%
-     \def\doBegin##1|{%
-	     \ifthenelse{\equal{##1}{no_caption}}%
-	                {\begin{CMD@prp}}%
-	                {\begin{CMD@prp}[##1]}%
-	   }%
-	   \expandafter\doBegin\CMD@prp@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
-     \ifthenelse{\equal{\CMD@prp@label}{no_label}}%
-                {\ifthenelse{\equal{\CMD@prp@caption}{no_caption}}%
-                            {}%
-                            {\label{theorem:\CMD@prp@caption}}}%
-                {\label{theorem:\CMD@prp@label}}%
-    }%
-    {%\unskip\nobreak\mbox{}\hfill$\Box$%
-     \end{CMD@prp}}
+	% Environment for definitions
+	% The code for the box at the end from Mark Richters
 
-% List of examples
-\newcommand{\listofexamplesheading}{List of Examples}
-\newcommand{\listofexamples}{\listtheorems{CMD@exm}}
-\newcommand{\addexampleline}[1]{% Adds an entry to the list of examples, even though no explicit example environment was opened
-  \stepcounter{CMD@exm} % Increase example counter
-  \addtheoremline{CMD@exm}{#1}
-}
+		% Parameter set definitions
+		\newcommand{\CMD@def@label}{no_label}
+		\define@key{CMD@def}{label}%
+							 {\renewcommand{\CMD@def@label}{#1}}
+		\newcommand{\CMD@def@caption}{no_caption}
+		\define@key{CMD@def}{caption}%
+							 {\renewcommand{\CMD@def@caption}{#1}}
 
-% List of definitions
-\newcommand{\listofdefinitionsheading}{List of Definitions, Propositions, and Theorems}
-\newcommand{\listofdefinitions}{%
-  \theoremlisttype{allname} % This also lists the type of theorem
-  \listtheorems{CMD@def,CMD@thm,CMD@prp}
-}
+		% The actual environment
+		\theoremsymbol{\ensuremath{\blacksquare}}
+		%\newtheorem{CMD@def}{Definition}[chapter]
+		\new@theorem{CMD@def}{Definition}
+		\newenvironment{define}[1][]%
+			{\renewcommand{\CMD@def@label}{no_label}%
+			 \renewcommand{\CMD@def@caption}{no_caption}%
+			 \setkeys{CMD@def}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{CMD@def}}%
+										{\begin{CMD@def}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@def@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@def@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@def@caption}{no_caption}}%
+															{}%
+															{\label{define:\CMD@def@caption}}}%
+									{\label{define:\CMD@def@label}}%
+			}%
+			{%\unskip\nobreak\mbox{}\hfill$\blacksquare$%
+			 \end{CMD@def}%\medskip
+			 }
+
+	% Environment for examples
+	% The code for the box at the end from Mark Richters
+
+		% Parameter set definitions
+		\newcommand{\CMD@exm@label}{no_label}
+		\define@key{CMD@exm}{label}%
+							 {\renewcommand{\CMD@exm@label}{#1}}
+		\newcommand{\CMD@exm@caption}{no_caption}
+		\define@key{CMD@exm}{caption}%
+							 {\renewcommand{\CMD@exm@caption}{#1}}
+
+		% The actual environment
+		\theoremsymbol{\ensuremath{\Diamond}}
+		%\newtheorem{CMD@exm}{Example}[chapter]
+		\new@theorem{CMD@exm}{Example}
+		\global\let\example\relax
+		\global\let\endexample\relax
+		\newenvironment{example}[1][]%
+			{\renewcommand{\CMD@exm@label}{no_label}%
+			 \renewcommand{\CMD@exm@caption}{no_caption}%
+			 \setkeys{CMD@exm}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{CMD@exm}}%
+										{\begin{CMD@exm}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@exm@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@exm@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@exm@caption}{no_caption}}%
+															{}%
+															{\label{example:\CMD@exm@caption}}}%
+									{\label{example:\CMD@exm@label}}%
+			}%
+			{%\unskip\nobreak\mbox{}\hfill$\Diamond$%
+			 \end{CMD@exm}} 
+
+	% Environment for theorems
+	% The code for the box at the end from Mark Richters
+
+		% Parameter set definitions
+		\newcommand{\CMD@thm@label}{no_label}
+		\define@key{CMD@thm}{label}%
+							 {\renewcommand{\CMD@thm@label}{#1}}
+		\newcommand{\CMD@thm@caption}{no_caption}
+		\define@key{CMD@thm}{caption}%
+							 {\renewcommand{\CMD@thm@caption}{#1}}
+
+		% The actual environment
+		\theoremsymbol{\ensuremath{\Box}}
+		%\newtheorem{CMD@thm}{Theorem}[chapter]
+		\new@theorem{CMD@thm}{Theorem}
+		\global\let\theorem\relax
+		\global\let\endtheorem\relax
+		\newenvironment{theorem}[1][]%
+			{\renewcommand{\CMD@thm@label}{no_label}%
+			 \renewcommand{\CMD@thm@caption}{no_caption}%
+			 \setkeys{CMD@thm}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{CMD@thm}}%
+										{\begin{CMD@thm}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@thm@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@thm@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@thm@caption}{no_caption}}%
+															{}%
+															{\label{theorem:\CMD@thm@caption}}}%
+									{\label{theorem:\CMD@thm@label}}%
+			}%
+			{%\unskip\nobreak\mbox{}\hfill$\Box$%
+			 \end{CMD@thm}}
+			 
+	% Environment for corollaries
+	% The code for the box at the end from Mark Richters
+
+		% Parameter set definitions
+		\newcommand{\CMD@cor@label}{no_label}
+		\define@key{CMD@cor}{label}%
+							 {\renewcommand{\CMD@cor@label}{#1}}
+		\newcommand{\CMD@cor@caption}{no_caption}
+		\define@key{CMD@cor}{caption}%
+							 {\renewcommand{\CMD@cor@caption}{#1}}
+
+		% The actual environment
+		\theoremsymbol{\ensuremath{\Box}}
+		\new@theorem{CMD@cor}{Corollary}
+		\newenvironment{corollary}[1][]%
+			{\renewcommand{\CMD@cor@label}{no_label}%
+			 \renewcommand{\CMD@cor@caption}{no_caption}%
+			 \setkeys{CMD@cor}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{CMD@cor}}%
+										{\begin{CMD@cor}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@cor@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@cor@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@cor@caption}{no_caption}}%
+															{}%
+															{\label{corollary:\CMD@cor@caption}}}%
+									{\label{corollary:\CMD@cor@label}}%
+			}%
+			{%\unskip\nobreak\mbox{}\hfill$\Box$%
+			 \end{CMD@cor}}
+
+	% Environment for propositions
+	% The code for the box at the end from Mark Richters
+
+		% Parameter set definitions
+		\newcommand{\CMD@prp@label}{no_label}
+		\define@key{CMD@prp}{label}%
+							 {\renewcommand{\CMD@prp@label}{#1}}
+		\newcommand{\CMD@prp@caption}{no_caption}
+		\define@key{CMD@prp}{caption}%
+							 {\renewcommand{\CMD@prp@caption}{#1}}
+
+		% The actual environment
+		\theoremsymbol{\ensuremath{\Box}}
+		%\newtheorem{CMD@prp}{Proposition}[chapter]
+		\new@theorem{CMD@prp}{Proposition}
+		\global\let\proposition\relax
+		\global\let\endproposition\relax
+		\newenvironment{proposition}[1][]%
+			{\renewcommand{\CMD@prp@label}{no_label}%
+			 \renewcommand{\CMD@prp@caption}{no_caption}%
+			 \setkeys{CMD@prp}{#1}%
+			 \def\doBegin##1|{%
+				 \ifthenelse{\equal{##1}{no_caption}}%
+										{\begin{CMD@prp}}%
+										{\begin{CMD@prp}[##1]}%
+			 }%
+			 \expandafter\doBegin\CMD@prp@caption|% We need this roundabout construction to pre-expand the caption for ntheorem.sty
+			 \ifthenelse{\equal{\CMD@prp@label}{no_label}}%
+									{\ifthenelse{\equal{\CMD@prp@caption}{no_caption}}%
+															{}%
+															{\label{theorem:\CMD@prp@caption}}}%
+									{\label{theorem:\CMD@prp@label}}%
+			}%
+			{%\unskip\nobreak\mbox{}\hfill$\Box$%
+			 \end{CMD@prp}}
+
+	% List of examples
+	\newcommand{\listofexamplesheading}{List of Examples}
+	\newcommand{\listofexamples}{\listtheorems{CMD@exm}}
+	\newcommand{\addexampleline}[1]{% Adds an entry to the list of examples, even though no explicit example environment was opened
+		\stepcounter{CMD@exm} % Increase example counter
+		\addtheoremline{CMD@exm}{#1}
+	}
+
+	% List of definitions
+	\newcommand{\listofdefinitionsheading}{List of Definitions, Propositions, and Theorems}
+	\newcommand{\listofdefinitions}{%
+		\theoremlisttype{allname} % This also lists the type of theorem
+		\listtheorems{CMD@def,CMD@thm,CMD@prp}
+	}
+\fi
 
 \endinput
