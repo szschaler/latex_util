@@ -1,0 +1,37 @@
+\NeedsTeXFormat{LaTeX2e}[1995/12/01]
+\ProvidesPackage{long_paper}
+
+\newif\if@long
+\@longfalse
+
+\DeclareOption{long}
+  { \@longtrue }
+
+\DeclareOption{short}
+  { % Nothing to do: this is the default setting
+  }
+
+\ProcessOptions
+
+\RequirePackage{comment}
+
+\if@long
+  \includecomment{longver}
+  \excludecomment{shortver}
+\else
+  \includecomment{shortver}
+  \excludecomment{longver}
+\fi
+
+\newcommand{\lver}[1]{}
+\newcommand{\sver}[1]{}
+
+\begin{longver}
+  \renewcommand{\lver}[1]{{#1}}
+\end{longver}
+
+\begin{shortver}
+  \renewcommand{\sver}[1]{{#1}}
+\end{shortver}
+
+\endinput

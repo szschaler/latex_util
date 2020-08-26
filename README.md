@@ -8,10 +8,12 @@ There goes...
 ## A little bit of documentation
 
 There are a number of `.sty` files, each of which provide helpers for handling a particular aspect of text production. These are: 
+
   1. `drafts.sty`, which helps with drafting by providing commands for marking up comments and identifying left-over comments when preparing the final document, as well as commands for change mark up.
   2. `figures.sty`, which provides a simplified command for embedding figures in one go
   3. `theorem_environments.sty`, which provides a number of specialised commands for theorem-style environments with a simplified usage syntax for handling labels, captions, end marks, etc.
-  4. `commands.sty` containing some miscellaneous commands probably of no use to anybody but myself :-)
+  4. `long_paper.sty`, which provides support for separating short and long version of a paper in one TeX setup (*e.g.,* where the page limit means some information needs to go into a separate tech report).  
+  5. `commands.sty` containing some miscellaneous commands probably of no use to anybody but myself :-)
 
 ### Usage of `drafts.sty`
 
@@ -26,5 +28,9 @@ For change markup there are the commands `\add{New text}`, `\delete{Old text}` a
 TBD
 
 ### Usage of `theorem_environment.sty`
+
+TBD
+
+### Usage of `long_paper.sty`
 
 TBD
