@@ -22,7 +22,7 @@
 \RequirePackage{xcolor}  % For change control
 
 % Use these commands to mark comments in the text. When switching off draft mode, LaTeX will emit a warning whenever it encounters one of these commands.
-\definecolor{draftColor}{rgb}{.8,0,.8}
+\colorlet{draftColor}{orange}
 \newcommand{\draft}[2][]%
     {\dr@ftPrefix\noindent\textcolor{draftColor}{{\bfseries $\Rightarrow$ {\ttfamily To Do} #1: }{{\itshape\sffamily#2}} $\Leftarrow$}}
 \newenvironment{draftbar}[1][]%
